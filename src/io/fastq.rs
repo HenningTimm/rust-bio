@@ -20,12 +20,13 @@ use std::fs;
 use std::fmt;
 use std::path::Path;
 use std::convert::AsRef;
+use flate2;
 
 use utils::TextSlice;
 
 /// A FastQ reader.
 pub struct Reader<R: io::Read> {
-    reader: io::BufReader<R>,
+    reader: io::BufReader<R>,  // make this a io::BufRead trait object https://doc.rust-lang.org/stable/std/io/trait.BufRead.html
     sep_line: String,
 }
 
@@ -38,6 +39,8 @@ impl Reader<fs::File> {
 }
 
 
+
+
 impl<R: io::Read> Reader<R> {
     /// Read from a given `io::Read`.
     pub fn new(reader: R) -> Self {
@@ -45,6 +48,14 @@ impl<R: io::Read> Reader<R> {
             reader: io::BufReader::new(reader),
             sep_line: String::new(),
         }
+    }
+
+
+    pub fn from_gzipped_file<P: AsRef<Path>>(path: P) -> Self {
+        let reader = fs::File::open(path)
+                .map(io::BufReader::new)
+                .map(flate2::bufread::GzDecoder::new).unwrap();
+        Reader::new(reader)
     }
 
     /// Read into a given record.
